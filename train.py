@@ -12,12 +12,26 @@ from collections import Counter
 import proc_lib as proc
 import train_lib as trainlib
 import models
+import argparse
+import os
+from pathlib import Path
 
 
-train_vec_name = "vecs/train-pca.h5" 
-test_vec_name = "vecs/test-pca.h5"
-model_name = "single"
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--model_type", type=str)
+parser.add_argument("-v", "--vec_type", type=str)
+parser.add_argument("-l", "--learning_rate", type=float)
+parser.add_argument("-r", "--run", type=int)
+args = parser.parse_args()
+
+
+train_vec_name = "vecs/train-{0}.h5".format(args.vec_type) 
+test_vec_name = "vecs/test-{0}.h5".format(args.vec_type)
+model_name = args.model_type
 vec_out_size = -1
+
+save_path = "result/saves/{0}-{1}-{2}-{3}".format(model_name, args.vec_type, args.learning_rate, args.run)
+Path(save_path).mkdir(parents=True, exist_ok=True)
 
 # Load image lables
 label_file_path = 'data/label.csv'
@@ -57,14 +71,14 @@ name2model = {
     "single": models.SingleNet,
     "double": models.DoubleNet
 }
-
-net = name2model[model_name](vec_input_size, vec_out_size, out_dims, ).to(device)
+model = name2model[model_name]
+net = model(vec_input_size, vec_out_size, out_dims).to(device)
 net = net.apply(models.init_weights)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr=0.0001 , weight_decay=1e-5)
+optimizer = optim.Adam(net.parameters(), lr=args.learning_rate , weight_decay=1e-5)
 
-for epoch in range(10):  # loop over the dataset multiple times
+for epoch in range(2000):  # loop over the dataset multiple times
 
     running_loss = 0.0
     n_batches = 3000 // batch_size
@@ -76,15 +90,14 @@ for epoch in range(10):  # loop over the dataset multiple times
         
         optimizer.zero_grad()
 
-        results, decoder_output = net(images, tags[:, :, 0], image_vecs)
+        results = net(images, tags[:, :, 0], image_vecs)
         loss = 0
         
         for lx in range(len(results)):
             tmp_loss = criterion(results[lx], labels[lx])
             loss += tmp_loss
         loss = loss / len(results)
-#         loss += criterion(decoder_output, lm[:, :, 1])
-#         loss = loss / 2
+
         
         loss.backward()
         optimizer.step()
@@ -96,7 +109,18 @@ for epoch in range(10):  # loop over the dataset multiple times
             print('[%d, %5d] loss: %.3f' %
                   (epoch + 1, i + 1, running_loss / (n_batches // 10)))
             running_loss = 0.0
+            
     print("Epoch loss: " + str(epoch_loss / n_batches))
-    if epoch_loss / n_batches < 0.002:
+   
+    if epoch % 5 == 0 and epoch > 1:
+        model_path = "{0}/{1}-{2}".format(save_path, epoch, str(epoch_loss / n_batches))
+        torch.save(net.state_dict(), model_path)
+
+    if epoch_loss / n_batches < 0.001:
         break
 print('Finished Training')
+model_path = "{0}/{1}-{2}".format(save_path,  "final=" + str(epoch), str(epoch_loss / n_batches))
+torch.save(net.state_dict(), model_path)
+# model types = 2
+# Learning Rate = 2
+# Vec types = 5

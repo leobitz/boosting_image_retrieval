@@ -43,7 +43,7 @@ class SingleNet(nn.Module):
     def forward(self, img, tag, vec):
         x = torch.relu(self.fc1(vec))
         outs = [o(x) for o in self.outs]
-        return outs, "decoder_output"
+        return outs
 
     def embs(self, x):
         x = torch.relu(self.fc1(x))
@@ -64,7 +64,7 @@ class DoubleNet(nn.Module):
         x = torch.relu(self.fc1(vec))
         x = torch.relu(self.fc2(x))
         outs = [o(x) for o in self.outs]
-        return outs, "decoder_output"
+        return outs
 
     def embs(self, x):
         x = torch.relu(self.fc1(x))
