@@ -82,9 +82,10 @@ def get_similarity_score(id2prop, idx2prop, idx2tag, test_names):
     return sim_mat
 
 
-def find_sims(name, sim_mat):
+def find_sims(name, sim_mat, idx2map):
     sims = sim_mat[:, idx2map[name]]
     argsort = np.argsort(sims)
+    # print(len(argsort), sim_mat.shape, len(idx2map))
     argsort = np.flip(argsort)[:11]
     return sims[argsort], argsort
 
@@ -129,12 +130,12 @@ def evaluate(ground, pred):
     return np.sum(pres) / len(ground)
 
 
-def get_acc(psim):
+def get_acc(psim, test, map2idx, idx2map, sim_mat):
     accs = []
     for i in range(len(test)):
-        sims, ids = find_sims(test[i], psim)
+        sims, ids = find_sims(test[i], psim, idx2map)
         pred_names = [map2idx[x] for x in ids[1:]]
-        sims, ids = find_sims(test[i], sim_mat)
+        sims, ids = find_sims(test[i], sim_mat, idx2map)
         ground_names = [map2idx[x] for x in ids[1:]]
         acc = evaluate(ground_names, pred_names)
         accs.append(acc)

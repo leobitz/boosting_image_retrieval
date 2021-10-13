@@ -30,6 +30,7 @@ test_vec_name = "vecs/test-{0}.h5".format(args.vec_type)
 model_name = args.model_type
 vec_out_size = -1
 
+save_folder = "{0}-{1}-{2}-{3}".format(model_name, args.vec_type, args.learning_rate, args.run)
 save_path = "result/saves/{0}-{1}-{2}-{3}".format(model_name, args.vec_type, args.learning_rate, args.run)
 Path(save_path).mkdir(parents=True, exist_ok=True)
 
@@ -64,9 +65,9 @@ if vec_out_size == -1:
     vec_out_size = vec_input_size
 f.close()
 
-batch_size = 32
+batch_size = 50
 device='cuda'
-gen = trainlib.generator("vecs/proc-train-images.h5", train_vec_name, train_outs, tt_data, batch_size=batch_size)
+gen = trainlib.generator("vecs/proc-test-images.h5", test_vec_name, test_outs, ts_data, batch_size=batch_size, rand=False)
 
 name2model = {
     "single": models.SingleNet,
@@ -76,52 +77,43 @@ model = name2model[model_name]
 net = model(vec_input_size, vec_out_size, out_dims).to(device)
 net = net.apply(models.init_weights)
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr=args.learning_rate , weight_decay=1e-5)
+model_saved_names = os.listdir(save_path)
+file = open("result/evals/"+save_folder, mode='w')
+for model_name in model_saved_names:
 
-for epoch in range(2000):  # loop over the dataset multiple times
+    net.load_state_dict(torch.load("{0}/{1}".format(save_path, model_name)))
+    net.eval()
 
-    running_loss = 0.0
-    n_batches = 3000 // batch_size
-    net.train()
-    epoch_loss = 0
-    for i in range(n_batches):
-    
-        images, tags, image_vecs,  labels = next(gen)
-        
-        optimizer.zero_grad()
+    embs = []
+    # extract the new feature vectors for testing
+    n_tbatches = 1000 // batch_size
+    net.eval()
+    with torch.no_grad():
+        for ix in range(n_tbatches):
+            images, tags, image_vecs,  labels = next(gen)
 
-        results = net(images, tags[:, :, 0], image_vecs)
-        loss = 0
-        
-        for lx in range(len(results)):
-            tmp_loss = criterion(results[lx], labels[lx])
-            loss += tmp_loss
-        loss = loss / len(results)
-
-        
-        loss.backward()
-        optimizer.step()
-
-        # print statistics
-        running_loss += loss.item()
-        epoch_loss += loss.item()
-        if i % (n_batches // 10) == 0 and i > 0:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / (n_batches // 10)))
-            running_loss = 0.0
+            vecs = net.embs(image_vecs)
             
-    print("Epoch loss: " + str(epoch_loss / n_batches))
-   
-    if epoch % 5 == 0 and epoch > 1:
-        model_path = "{0}/{1}-{2}".format(save_path, epoch, str(epoch_loss / n_batches))
-        torch.save(net.state_dict(), model_path)
+            embs.append(vecs.detach().cpu().numpy())
 
-    if epoch_loss / n_batches < 0.001:
-        break
-print('Finished Training')
-model_path = "{0}/{1}-{2}".format(save_path,  "final=" + str(epoch), str(epoch_loss / n_batches))
-torch.save(net.state_dict(), model_path)
-# model types = 2
-# Learning Rate = 2
-# Vec types = 5
+    sim = np.vstack(embs)
+    sim = sim / np.linalg.norm(sim, axis=1, keepdims=True)
+
+    psim = sim.dot(sim.T)
+
+    f = h5py.File("vecs/test-sim.h5", 'r')
+    sim_mat = f['tensor'][:]
+    f.close()
+
+    idx2map = {}
+    map2idx = {}
+    for a in range(len(test_names)):
+        idx2map[test_names[a]] = a
+        map2idx[a] = test_names[a]
+    score = proc.get_acc(psim, test_names, map2idx, idx2map, sim_mat)
+    line = "{0} {1}".format(model_name, score)
+    file.write(line)
+    file.write("\n")
+
+file.close()
+    
