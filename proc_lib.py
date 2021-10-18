@@ -71,17 +71,6 @@ def get_score(id2prop, a, b):
     return(p * t/len(atags))
 
 
-def get_similarity_score(id2prop, idx2prop, idx2tag, test_names):
-    trains = list(id2prop.keys())
-
-    sim_mat = np.zeros((len(test_names), len(test_names)))
-    for a in range(len(test_names)):
-        for b in range(len(test_names)):
-            sim = get_score(id2prop, test_names[a], test_names[b])
-            sim_mat[a][b] = sim
-    return sim_mat
-
-
 def find_sims(name, sim_mat, idx2map):
     sims = sim_mat[:, idx2map[name]]
     argsort = np.argsort(sims)
@@ -89,11 +78,6 @@ def find_sims(name, sim_mat, idx2map):
     argsort = np.flip(argsort)[:11]
     return sims[argsort], argsort
 
-
-def get_image(name):
-    path = folder + "images/"+name+".jpg"
-    im = io.imread(path)
-    return im
 
 
 def display_similars(name, sim_mat):
