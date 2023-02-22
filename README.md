@@ -1,5 +1,5 @@
 # What?
-The project investigates how multi-labeling images would boost representation in an image retrieval task.
+The project investigates how multi-labeling images would boost representation in an image retrieval task. Read the [full report](https://github.com/leobitz/boosting_image_retrieval/blob/main/paper.pdf)
 
 # How?
 Each image will have multiple labels. For example, in an e-commerce application, a shirt image might have attributes such as color, shape (V-shape, O-shape), size (L, M, X, XL), season (winter, summer), and more. These labels can be used to boost the representation embedding of that image. 
