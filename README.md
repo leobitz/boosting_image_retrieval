@@ -38,15 +38,15 @@ The ground truth is the similarity based on the labels provided with the dataset
 |Resnet101 | 11.05 | 14.9 | 
 |ViT-B/16 | 12.08 | 16.24 | 
 
-# Okay, but what is the take away?
+# Okay, but what is the takeaway?
 
-- Have detailed labels for some images and a small model with the shallow network performs much better than a larger one. 
+- Have detailed labels for some images and a small model with a shallow network performs much better than a larger one. 
 
 - The deployment cost will be very small
 
-- Example: As ResNet-18 is much cheeper than the ViT-B/16 model, instead of having the cost of running ViT-B/16, investing on detailed labeling of small data and fine-tuning ResNet-18 is much better in the long run. 
+- Example: As ResNet-18 is much cheaper than the ViT-B/16 model, instead of having the cost of running ViT-B/16, investing in detailed labeling of small data and fine-tuning ResNet-18 is much better in the long run. 
 
-The following sample shows the performance of an embedding. The task is extracting the top 10 images similar to the first image. The vanilla pretrained ViT model got the 9th image only. Our method only missed two. 
+The following sample shows the performance of an embedding. The task is extracting the top 10 images similar to the first image. The vanilla pre-trained ViT model got the 9th image only. Our method only missed two. 
 
 ![shallow model](https://github.com/leobitz/boosting_image_retrieval/blob/main/sample.png?raw=true)
 
